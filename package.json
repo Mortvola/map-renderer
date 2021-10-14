@@ -1,6 +1,6 @@
 {
-  "name": "render-map",
-  "version": "0.1.0",
+  "name": "@mortvola/map-renderer",
+  "version": "0.2.0",
   "description": "SaunterQuest map tile rendering service",
   "gypfile": true,
   "main": "./build/Release/rendermap",
