@@ -1,19 +1,20 @@
 {
   "name": "@mortvola/map-renderer",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "SaunterQuest map tile rendering service",
-  "gypfile": true,
   "main": "./build/Release/rendermap",
   "types": "./render-map.d.ts",
-  "license": "MIT",
-  "publishConfig": {
-    "@mortvola:registry": "https://npm.pkg.github.com"
-  },
-  "dependencies": {
-    "node-addon-api": "^3.0.0"
-  },
+  "gypfile": true,
   "scripts": {
     "build": "node-gyp build",
     "build:dev": "node-gyp build --debug"
   }
+  "author": "",
+  "license": "ISC",
+  "publishConfig": {
+    "@mortvola:registry": "https://npm.pkg.github.com"
+  },
+  "devDependencies": {
+    "node-addon-api": "^3.0.0"
+  },
 }
