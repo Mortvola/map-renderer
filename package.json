@@ -1,0 +1,16 @@
+{
+  "name": "render-map",
+  "version": "0.1.0",
+  "description": "SaunterQuest map tile rendering service",
+  "gypfile": true,
+  "main": "./build/Release/rendermap",
+  "types": "./render-map.d.ts",
+  "license": "MIT",
+  "dependencies": {
+    "node-addon-api": "^3.0.0"
+  },
+  "scripts": {
+    "build": "node-gyp build",
+    "build:dev": "node-gyp build --debug"
+  }
+}
