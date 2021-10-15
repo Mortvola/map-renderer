@@ -31,6 +31,7 @@
             "Layer.cpp",
             "MapnikLayer.cpp",
             "GeoTiffLayer.cpp",
+            "TileCache.cpp",
         ],
         'include_dirs': [
             "<!@(node -p \"require('node-addon-api').include\")",

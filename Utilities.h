@@ -5,7 +5,7 @@
 
 void printRenderRange (int x, int y, int z, int metaTiles);
 
-bool fileExists (const std::string &filename);
+std::tuple<bool, int> fileExists (const std::string &filename);
 
 void fileRemove (const std::string &filename);
 

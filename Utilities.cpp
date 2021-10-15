@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <cstring>
+#include <tuple>
 
 void printRenderRange (int x, int y, int z, int metaTiles)
 {
@@ -20,11 +21,15 @@ void printRenderRange (int x, int y, int z, int metaTiles)
 }
 
 
-bool fileExists (const std::string &filename)
+std::tuple<bool, int> fileExists (const std::string &filename)
 {
 	struct stat buffer;
 
-	return stat(filename.c_str (), &buffer) == 0;
+	if (stat(filename.c_str (), &buffer) == 0) {
+    return std::tuple<bool, int>(true, buffer.st_mtime);
+  }
+
+  return std::tuple<bool, int>(false, 0);
 }
 
 void fileRemove (const std::string &filename)
@@ -37,7 +42,11 @@ int createFolder (const std::string &folder)
 {
 	int result {0};
 
-	if (!fileExists(folder))
+  bool exists = false;
+
+  std::tie(exists, std::ignore) = fileExists(folder);
+
+	if (!exists)
 	{
 		result = mkdir(folder.c_str (), 0777);
 	}

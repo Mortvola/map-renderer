@@ -1,6 +1,9 @@
 #pragma once
 
 #include "RenderRequest.h"
+#include "TileCache.h"
+#include <memory>
+#include <vector>
 
 class TerrainRequest: public RenderRequest
 {
@@ -16,7 +19,7 @@ public:
 		const std::string &fileSystemRoot,
 		RenderRequest::StateChangeCallback stateChange);
 
-	bool render() override;
+	std::vector<std::shared_ptr<Tile>> render() override;
 
 private:
 };

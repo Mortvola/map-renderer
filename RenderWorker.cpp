@@ -35,12 +35,10 @@ void RenderWorker::Queue ()
 void RenderWorker::Execute() {
 	try
 	{
-		std::cerr << "doing stuff asynchronously" << std::endl;
-
 		m_request->setState(RenderRequest::State::Running);
 
 		auto result = m_request->render();
-		if (!result)
+		if (result.size() == 0)
 		{
 			m_request->setState(RenderRequest::State::Failure);
 			OnError();
@@ -48,10 +46,8 @@ void RenderWorker::Execute() {
 		else
 		{
 			m_request->setState(RenderRequest::State::Success);
-			OnOK();
+			OnOK(result);
 		}
-
-		std::cerr << "done doing stuff asynchronously" << std::endl;
 	}
 	catch (std::exception &e)
 	{
@@ -59,19 +55,16 @@ void RenderWorker::Execute() {
 	}
 }
 
-void RenderWorker::OnOK() {
-	std::cerr << "In OnOK. Resolving promise" << std::endl;
-	m_request->resolveDeferred();
+void RenderWorker::OnOK(const std::vector<std::shared_ptr<Tile>> &tiles)
+{
+	m_request->resolveDeferred(tiles);
 	m_queue.requestCompleted(m_request);
 	m_queue.removeWorker(this);
-	std::cerr << "Done resolving promise" << std::endl;
 }
 
 void RenderWorker::OnError()
 {
-	std::cerr << "In OnError. Rejecting promise" << std::endl;
 	m_request->rejectDeferred();
 	m_queue.requestCompleted(m_request);
 	m_queue.removeWorker(this);
-	std::cerr << "Done rejecting promise" << std::endl;
 }

@@ -7,6 +7,24 @@
 #include <memory>
 #include <map>
 
+struct FileInfo
+{
+  FileInfo(std::string name, int mtime)
+  :
+    fileName(name),
+    modifiedTime(mtime)
+  {
+  }
+
+  FileInfo()
+  {
+  }
+
+  std::string fileName;
+  int modifiedTime {0};
+};
+
+
 class rendermap: public Napi::ObjectWrap<rendermap>
 {
 public:
@@ -35,7 +53,7 @@ private:
 		Error,
 	};
 
-	std::tuple<RenderStatus, std::string> render (
+	std::tuple<RenderStatus, std::shared_ptr<Tile>> render (
 		const std::shared_ptr<Layer> &layer,
 		const Napi::Promise::Deferred &deferred,
 		int x,

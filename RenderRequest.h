@@ -2,8 +2,10 @@
 
 #include "Request.h"
 #include "Layer.h"
+#include "TileCache.h"
 #include <mapnik/map.hpp>
 #include <napi.h>
+#include <memory>
 
 class Map;
 
@@ -45,7 +47,7 @@ public:
 	void addRequestor (const Request &request);
 	// void setRequestorStates (State state);
 
-	void resolveDeferred();
+	void resolveDeferred(const std::vector<std::shared_ptr<Tile>> &tiles);
 	void rejectDeferred();
 
 	Napi::Env getEnv()
@@ -55,7 +57,7 @@ public:
 
 	mapnik::box2d<double> getBoundingBox () const;
 
-	virtual bool render() = 0;
+	virtual std::vector<std::shared_ptr<Tile>> render() = 0;
 
 	void setState(State state);
 

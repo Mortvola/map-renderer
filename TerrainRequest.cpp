@@ -1,9 +1,12 @@
 #include "TerrainRequest.h"
 #include "GeoTiffLayer.h"
 #include "Utilities.h"
+#include "TileCache.h"
 #include <gdal/gdal.h>
 #include <gdal/gdal_priv.h>
 #include <png++/png.hpp>
+#include <sstream>
+#include <memory>
 
 TerrainRequest::TerrainRequest (
 	const std::shared_ptr<Layer> &layer,
@@ -19,11 +22,9 @@ TerrainRequest::TerrainRequest (
 {
 }
 
-bool TerrainRequest::render ()
+std::vector<std::shared_ptr<Tile>> TerrainRequest::render ()
 {
-	std::cerr << "Rendering terrain ";
-	printRenderRange (m_x, m_y, m_z, 1);
-	std::cerr << std::endl;
+  std::vector<std::shared_ptr<Tile>> result;
 	bool dataSetFound = false;
 	const int tileArea = m_layer->m_tileSize * m_layer->m_tileSize;
 
@@ -118,14 +119,11 @@ bool TerrainRequest::render ()
 			}
 		}
 
-	    auto filename = createFileName (m_fileSystemRoot, m_x, m_y, m_z);
+    std::stringstream ss;
+    image.write_stream(ss);
 
-		image.write(filename);
-
-		createMD5File (filename);
-
-		std::cerr << "Done rendering terrain tile" << std::endl;
+    result.push_back(m_layer->saveTile(m_x, m_y, m_z, ss.str()));
 	}
 
-	return dataSetFound;
+	return result;
 }

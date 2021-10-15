@@ -1,7 +1,10 @@
 #pragma once
 
+#include "TileCache.h"
 #include <napi.h>
 #include <thread>
+#include <memory>
+#include <vector>
 
 class RenderQueue;
 class RenderRequest;
@@ -21,7 +24,7 @@ public:
 	void Queue ();
 	void Execute();
 
-	void OnOK();
+	void OnOK(const std::vector<std::shared_ptr<Tile>> &tile);
 	void OnError();
 
 	std::thread m_thread;

@@ -88,11 +88,12 @@ void RenderQueue::addRenderRequest (
 	// Is this request the same as the one currently being rendered?
 	if (iter != m_rendering.end())
 	{
+    // Yes. Attach a new requestor to the request.
 		(*iter)->m_request->addRequestor(request->m_requestors[0]);
 	}
 	else
 	{
-		// Determine if this request is already in the queue.
+		// No. Determine if this request is already in the queue.
 		auto it = std::find_if(m_renderQueue.begin (), m_renderQueue.end (),
 			[&request] (const std::shared_ptr<RenderRequest> req)
 			{
@@ -140,8 +141,6 @@ void RenderQueue::addRenderRequest (
 	}
 
 	m_renderCondition.notify_all();
-
-	std::cerr << "Done adding render request" << std::endl;
 }
 
 void RenderQueue::removeWorker(const RenderWorker *worker)
@@ -163,8 +162,6 @@ void RenderQueue::removeWorker(const RenderWorker *worker)
 void RenderQueue::requestCompleted (
 	const std::shared_ptr<RenderRequest> &request)
 {
-	std::cerr << "Storing completed request" << std::endl;
-
 	// Add the request to the completed list
 	std::unique_lock<std::mutex> lock(m_completedEntriesMutex);
 	m_completedEntries.push_front(request);
@@ -172,8 +169,6 @@ void RenderQueue::requestCompleted (
 	{
 		m_completedEntries.pop_back();
 	}
-
-	std::cerr << "Done storing completed request" << std::endl;
 }
 
 Napi::Object RenderQueue::getInformation(Napi::Env env)

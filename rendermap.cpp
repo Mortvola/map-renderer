@@ -11,6 +11,7 @@
 #include "TerrainRequest.h"
 #include "MapnikLayer.h"
 #include "GeoTiffLayer.h"
+#include "TileCache.h"
 #include <cmath>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -22,6 +23,9 @@
 #include <csignal>
 #include <boost/filesystem.hpp>
 #include <regex>
+#include <fstream>
+#include <openssl/md5.h>
+#include <iomanip>
 
 Napi::FunctionReference rendermap::constructor;
 
@@ -154,8 +158,7 @@ std::tuple<double, double> latLngToWebMercator (double lng, double lat)
 	return std::tuple<double, double> (x, y);
 }
 
-
-std::tuple<rendermap::RenderStatus, std::string> rendermap::render(
+std::tuple<rendermap::RenderStatus, std::shared_ptr<Tile>> rendermap::render(
 	const std::shared_ptr<Layer> &layer,
 	const Napi::Promise::Deferred &deferred,
 	int x,
@@ -169,33 +172,40 @@ std::tuple<rendermap::RenderStatus, std::string> rendermap::render(
 
 		std::cerr << "Requested " << (update ? "(with update) " : "") << filename << std::endl;
 
-		if (update || !fileExists(filename))
-		{
-			fileRemove(filename);
+    bool exists = false;
+    int modifiedTime = 0;
 
-			// Add tile to render to the render queue
-			layer->submitRequest(deferred, m_callbackFunction, x, y, z,
-				[this](const std::shared_ptr<RenderRequest> &request)
-				{
-					requestStateChange(request);
-				});
+    auto tile = g_tileCache.getTile(filename);
 
-			return std::tuple<RenderStatus, std::string>(RenderStatus::Queued, {});
-		}
+    if (!tile)
+    {
+      std::tie(exists, modifiedTime) = fileExists(filename);
 
-		if (!fileExists (filename + ".md5"))
-		{
-			createMD5File (filename);
-		}
+      if (update || !exists)
+      {
+        fileRemove(filename);
 
-		return std::tuple<RenderStatus, std::string>(RenderStatus::Rendered, filename);
+        // Add tile to render to the render queue
+        layer->submitRequest(deferred, m_callbackFunction, x, y, z,
+          [this](const std::shared_ptr<RenderRequest> &request)
+          {
+            requestStateChange(request);
+          });
+
+        return std::tuple<RenderStatus, std::shared_ptr<Tile>>(RenderStatus::Queued, nullptr);
+      }
+
+      tile = layer->loadTile(x, y, z);
+   }
+
+    return std::tuple<RenderStatus, std::shared_ptr<Tile>>(RenderStatus::Rendered, tile);
 	}
 	catch (std::exception &e)
 	{
 		std::cerr << e.what () << ", tile: " << x << ", " << y << ", " << z << std::endl;
 	}
 
-	return std::tuple<RenderStatus, std::string>(RenderStatus::Error, {});
+	return std::tuple<RenderStatus, std::shared_ptr<Tile>>(RenderStatus::Error, nullptr);
 }
 
 
@@ -217,7 +227,7 @@ Napi::Promise rendermap::processRequest (
 	}
 
 	RenderStatus result;
-	std::string fileName;
+	std::shared_ptr<Tile> tile;
 
 	auto iter = m_layers.find(type);
 
@@ -225,7 +235,19 @@ Napi::Promise rendermap::processRequest (
 	{
 		auto &layer = iter->second;
 
-		std::tie(result, fileName) = render(layer, deferred, x, y, z, update);
+		std::tie(result, tile) = render(layer, deferred, x, y, z, update);
+
+    if (tile)
+    {
+      auto info = Napi::Object::New(env);
+
+      auto buffer = Napi::Buffer<char>::Copy(env, tile->m_data.c_str(), tile->m_data.length());
+
+      info.Set("filename", Napi::String::New(env, tile->m_filename));
+      info.Set("data", buffer);
+
+      deferred.Resolve(info);
+    }
 	}
 	else
 	{
@@ -235,10 +257,9 @@ Napi::Promise rendermap::processRequest (
 
 	switch (result) {
 	case RenderStatus::Rendered:
-		deferred.Resolve(Napi::String::New(deferred.Env(), fileName));
 		break;
 	case RenderStatus::Error:
-		deferred.Reject(Napi::String::New(deferred.Env(), fileName));
+		deferred.Reject(Napi::Object::New(env));
 		break;
 	case RenderStatus::Queued:
 		break;

@@ -1,9 +1,11 @@
 #include "RenderRequest.h"
 #include "Utilities.h"
+#include "TileCache.h"
 #include <sys/stat.h>
 #include <gdal/gdal.h>
 #include <gdal/gdal_priv.h>
 #include <png++/png.hpp>
+#include <iostream>
 
 static int nextRequestId {0};
 
@@ -41,18 +43,31 @@ void RenderRequest::addRequestor(
 	m_requestors.push_back(request);
 }
 
-void RenderRequest::resolveDeferred()
+void RenderRequest::resolveDeferred(const std::vector<std::shared_ptr<Tile>> &tiles)
 {
 	for (const auto &request: m_requestors) {
-		m_callback.BlockingCall(
-			[this, request](Napi::Env env, Napi::Function jsCallback)
-			{
-				request.m_deferred.Resolve(
-					Napi::String::New(request.m_deferred.Env(),
-							createFileName (m_fileSystemRoot, request.m_x, request.m_y, request.m_z)
-					)
-				);
-			});
+    auto filename = createFileName (m_fileSystemRoot, request.m_x, request.m_y, request.m_z);
+
+    auto iter = std::find_if(tiles.begin(), tiles.end(), [filename](const std::shared_ptr<Tile> &t) {
+      return t->m_filename == filename;
+    });
+  
+    if (iter != tiles.end()) {
+      auto tile = *iter;
+
+      m_callback.BlockingCall(
+        [request, tile](Napi::Env env, Napi::Function jsCallback)
+        {
+         	auto info = Napi::Object::New(env);
+
+          auto buffer = Napi::Buffer<char>::Copy(env, tile->m_data.c_str(), tile->m_data.length());
+
+      		info.Set("filename", Napi::String::New(env, tile->m_filename));
+          info.Set("data", buffer);
+
+          request.m_deferred.Resolve(info);
+        });
+    }
 	}
 }
 
@@ -167,4 +182,3 @@ Napi::Object RenderRequest::getObject(Napi::Env env)
 
 	return reqObject;
 }
-

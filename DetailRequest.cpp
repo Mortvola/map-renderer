@@ -1,7 +1,13 @@
 #include "DetailRequest.h"
 #include "MapnikLayer.h"
+#include "TileCache.h"
 #include "Utilities.h"
 #include <sys/stat.h>
+#include <fstream>
+#include <openssl/md5.h>
+#include <sstream>
+#include <iomanip>
+#include <memory>
 
 DetailRequest::DetailRequest (
 	const std::shared_ptr<Layer> &layer,
@@ -28,12 +34,9 @@ DetailRequest::DetailRequest (
 {
 }
 
-bool DetailRequest::render ()
+std::vector<std::shared_ptr<Tile>> DetailRequest::render ()
 {
-	std::cerr << "Rendering detail ";
-	printRenderRange (m_x, m_y, m_z, m_metaTiles);
-	std::cerr << std::endl;
-
+  std::vector<std::shared_ptr<Tile>> result;
 	std::cerr << m_layer->m_extent << std::endl;
 
 	auto box = getBoundingBox ();
@@ -61,17 +64,9 @@ bool DetailRequest::render ()
 					image);
 			struct mapnik::image_view_any vw(iv);
 
-			auto filename = createFileName (m_fileSystemRoot, m_x + x, m_y + y, m_z);
-
-			std::cerr << "Saving to file " << filename << std::endl;
-
-			mapnik::save_to_file(vw, filename);
-
-			chmod(filename.c_str (), 0666);
-
-			createMD5File (filename);
+      result.push_back(m_layer->saveTile(m_x + x, m_y + y, m_z, mapnik::save_to_string(vw, "png")));
 		}
 	}
 
-	return true;
+	return result;
 }

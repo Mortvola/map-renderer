@@ -1,7 +1,9 @@
 #pragma once
 
 #include "RenderQueue.h"
+#include "TileCache.h"
 #include <mapnik/map.hpp>
+#include <memory>
 
 class Layer: public std::enable_shared_from_this<Layer>
 {
@@ -28,6 +30,17 @@ public:
 	static const int m_tileSize {256};
 
 	mapnik::box2d<double> m_extent {-20037508.3427892439067364,-20037508.3441838659346104, 20037508.3427892439067364, 20037508.3413946218788624};
+
+  std::shared_ptr<Tile> loadTile(
+    int x,
+    int y,
+    int z);
+
+  std::shared_ptr<Tile> saveTile(
+    int x,
+    int y,
+    int z,
+    const std::string &data);
 
 protected:
 
