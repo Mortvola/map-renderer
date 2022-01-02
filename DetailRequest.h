@@ -17,6 +17,7 @@ public:
 		int y,
 		int z,
 		const std::string &fileSystemRoot,
+		const std::string &extension,
 		RenderRequest::StateChangeCallback stateChange);
 
 	std::vector<std::shared_ptr<Tile>> render() override;

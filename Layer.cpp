@@ -7,10 +7,11 @@
 #include <iomanip>
 #include <sys/stat.h>
 
-Layer::Layer(const std::string &stateDir, const std::string &name, int workerPoolSize)
+Layer::Layer(const std::string &stateDir, const std::string &name, const std::string &extension, int workerPoolSize)
 :
 	m_name(name),
 	m_root(stateDir + "/" + name + "/"),
+	m_extension(extension),
 	m_queue(workerPoolSize)
 {
 	createFolder(m_root);
@@ -18,7 +19,7 @@ Layer::Layer(const std::string &stateDir, const std::string &name, int workerPoo
 
 std::string Layer::createFileName(int x, int y, int z)
 {
-	return ::createFileName(m_root, x, y, z);
+	return ::createFileName(m_root, x, y, z, m_extension);
 }
 
 Napi::Object Layer::getQueueInformation(Napi::Env env)

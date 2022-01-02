@@ -17,6 +17,7 @@ DetailRequest::DetailRequest (
 	int y,
 	int z,
 	const std::string &fileSystemRoot,
+	const std::string &extension,
 	RenderRequest::StateChangeCallback stateChange)
 :
 	RenderRequest(
@@ -30,6 +31,7 @@ DetailRequest::DetailRequest (
 		static_cast<MapnikLayer *>(layer.get())->m_metaTiles,
 		0.5,
 		fileSystemRoot,
+		extension,
 		stateChange)
 {
 }

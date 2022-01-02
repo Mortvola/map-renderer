@@ -13,6 +13,7 @@ public:
 	Layer (
 		const std::string &stateDir,
 		const std::string &name,
+		const std::string &extension,
 		int workerPoolSize);
 
 	std::string createFileName(int x, int y, int z);
@@ -46,6 +47,7 @@ protected:
 
 	std::string m_name;
 	std::string m_root;
+	std::string m_extension;
 
 	RenderQueue m_queue;
 };

@@ -14,7 +14,7 @@ std::string createFolder(const std::string &root, int x, int y, int z);
 
 void logCreateFolderError (const std::string &folder);
 
-std::string createFileName (const std::string &root, int x, int y, int z);
+std::string createFileName (const std::string &root, int x, int y, int z, const std::string &extension);
 
 void createMD5File (const std::string &filename);
 

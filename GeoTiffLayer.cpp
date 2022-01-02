@@ -10,7 +10,7 @@ GeoTiffLayer::GeoTiffLayer (
 	const std::string &terrainDir,
 	int workerPoolSize)
 :
-	Layer(stateDir, name, workerPoolSize),
+	Layer(stateDir, name, "png", workerPoolSize),
 	m_terrainDatasets(initializeTerrain(terrainDir))
 {
 

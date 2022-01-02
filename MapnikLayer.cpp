@@ -10,7 +10,7 @@ MapnikLayer::MapnikLayer (
 	int poolSize,
 	int workerPoolSize)
 :
-	Layer(stateDir, name, workerPoolSize),
+	Layer(stateDir, name, "png", workerPoolSize),
 	m_metaTiles (metaTiles),
 	m_metaSize (m_tileSize * m_metaTiles + m_tileSize),
 	m_poolSize (poolSize)
@@ -35,7 +35,7 @@ void MapnikLayer::submitRequest(
 	int z,
 	Layer::StateChangeCallback stateChangeCallback)
 {
-	auto request = std::make_shared<DetailRequest>(shared_from_this(), deferred, callback, x, y, z, m_root,
+	auto request = std::make_shared<DetailRequest>(shared_from_this(), deferred, callback, x, y, z, m_root, "png",
 		stateChangeCallback);
 
 	m_queue.addRenderRequest(request);

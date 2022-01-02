@@ -5,12 +5,12 @@
   "main": "./build/Release/rendermap",
   "types": "./render-map.d.ts",
   "gypfile": true,
+  "license": "ISC",
   "scripts": {
     "build": "node-gyp build",
     "build:dev": "node-gyp build --debug"
   },
-  "author": "",
-  "license": "ISC",
+  "author": "Richard Shields",
   "publishConfig": {
     "@mortvola:registry": "https://npm.pkg.github.com"
   },

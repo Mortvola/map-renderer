@@ -105,11 +105,11 @@ std::string createFolder(const std::string &root, int x, int y, int z)
 }
 
 
-std::string createFileName (const std::string &root, int x, int y, int z)
+std::string createFileName (const std::string &root, int x, int y, int z, const std::string &extension)
 {
 	auto folder = createFolder (root, x, y, z);
 
-	return folder + "tile_" + std::to_string(z) + "_" + std::to_string(y) + "_" + std::to_string(x) + ".png";
+	return folder + "tile_" + std::to_string(z) + "_" + std::to_string(y) + "_" + std::to_string(x) + "." + extension;
 }
 
 

@@ -11,6 +11,7 @@
 #include "TerrainRequest.h"
 #include "MapnikLayer.h"
 #include "GeoTiffLayer.h"
+#include "Terrain3d.h"
 #include "TileCache.h"
 #include <cmath>
 #include <sys/stat.h>
@@ -138,6 +139,18 @@ rendermap::rendermap (const Napi::CallbackInfo &info)
 						layerName,
 						terrainDir,
 						1);
+
+					m_layers[layerName] = std::move(layer);
+				}
+				else if (type == "terrain3d") {
+					std::string elevationDir {"."};
+
+					if (layer.Has("directory") && layer.Get("directory").IsString())
+					{
+						elevationDir = layer.Get("directory").As<Napi::String>();
+					}
+
+					auto layer = std::make_unique<Terrain3d>(stateDir, layerName, elevationDir, 1);
 
 					m_layers[layerName] = std::move(layer);
 				}

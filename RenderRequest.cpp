@@ -20,6 +20,7 @@ RenderRequest::RenderRequest (
 	int metaTiles,
 	double padding,
 	const std::string fileSystemRoot,
+	const std::string &extension,
 	RenderRequest::StateChangeCallback stateChange)
 :
 	m_callback(callback),
@@ -32,6 +33,7 @@ RenderRequest::RenderRequest (
 	m_metaTiles (metaTiles),
 	m_padding (padding),
 	m_fileSystemRoot(fileSystemRoot),
+	m_extension(extension),
 	m_requestStateChange(stateChange)
 {
 	m_requestors.emplace_back(x, y, z, deferred);
@@ -45,8 +47,8 @@ void RenderRequest::addRequestor(
 
 void RenderRequest::resolveDeferred(const std::vector<std::shared_ptr<Tile>> &tiles)
 {
-	for (const auto &request: m_requestors) {
-    auto filename = createFileName (m_fileSystemRoot, request.m_x, request.m_y, request.m_z);
+  for (const auto &request: m_requestors) {
+    auto filename = createFileName (m_fileSystemRoot, request.m_x, request.m_y, request.m_z, m_extension);
 
     auto iter = std::find_if(tiles.begin(), tiles.end(), [filename](const std::shared_ptr<Tile> &t) {
       return t->m_filename == filename;
@@ -79,7 +81,7 @@ void RenderRequest::rejectDeferred()
 			{
 				request.m_deferred.Reject(
 					Napi::String::New(request.m_deferred.Env(),
-						createFileName (m_fileSystemRoot, request.m_x, request.m_y, request.m_z)
+						createFileName (m_fileSystemRoot, request.m_x, request.m_y, request.m_z, m_extension)
 					)
 				);
 			});
@@ -142,6 +144,8 @@ std::string getTypeString(RenderRequest::Type type)
 		return "detail";
 	case RenderRequest::Type::Terrain:
 		return "terrain";
+	case RenderRequest::Type::Terrain3d:
+		return "terrain3d";
 	case RenderRequest::Type::None:
 		return "none";
 	}

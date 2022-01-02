@@ -18,7 +18,8 @@ public:
 	{
 		None,
 		Detail,
-		Terrain
+		Terrain,
+		Terrain3d,
 	};
 
 	enum class State
@@ -42,6 +43,7 @@ public:
 		int metaTiles,
 		double padding,
 		const std::string fileSystemRoot,
+		const std::string &extension,
 		StateChangeCallback stateChange);
 
 	void addRequestor (const Request &request);
@@ -82,6 +84,7 @@ public:
 	std::vector<Request> m_requestors;
 
 	std::string m_fileSystemRoot;
+	std::string m_extension;
 
 private:
 

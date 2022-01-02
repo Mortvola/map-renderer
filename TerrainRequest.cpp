@@ -18,7 +18,7 @@ TerrainRequest::TerrainRequest (
 	const std::string &fileSystemRoot,
 	RenderRequest::StateChangeCallback stateChange)
 :
-	RenderRequest(layer, RenderRequest::Type::Terrain, deferred, callback, x, y, z, 1, 0, fileSystemRoot, stateChange)
+	RenderRequest(layer, RenderRequest::Type::Terrain, deferred, callback, x, y, z, 1, 0, fileSystemRoot, "png", stateChange)
 {
 }
 
