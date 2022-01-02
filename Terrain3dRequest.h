@@ -66,7 +66,7 @@ public:
 private:
   Terrain getElevationTile(int x, int y, int dimension);
 
-  const ElevationFile &loadFile(const LatLng &point);
+  std::shared_ptr<ElevationFile> loadFile(const LatLng &point);
 
   void create();
 
@@ -96,6 +96,8 @@ private:
   std::vector<double> m_points;
   std::vector<int> m_indices;
   std::vector<double> m_normals;
+
+  std::mutex m_fileLoadMutex;
 };
 
 void elevationPathSet(const std::string &path);

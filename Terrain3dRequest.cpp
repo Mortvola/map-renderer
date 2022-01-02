@@ -9,7 +9,7 @@ void elevationPathSet(const std::string &path) { g_basepath = path + "/"; }
 
 std::string elevationPathGet() { return g_basepath; }
 
-std::map<std::string, ElevationFile> files;
+std::map<std::string, std::shared_ptr<ElevationFile>> files;
 uint64_t accessCounter {0};
 
 Terrain3dRequest::Terrain3dRequest (
@@ -108,7 +108,7 @@ Terrain Terrain3dRequest::getElevationTile(int x, int y, int dimension) {
       for (auto lng = lngMin; lng < lngMax; lng++) {
 
         LatLng nw(lat, lng);
-        auto &file = loadFile(nw);
+        auto file = loadFile(nw);
 
         int startX = 0;
 
@@ -144,7 +144,8 @@ Terrain Terrain3dRequest::getElevationTile(int x, int y, int dimension) {
 
         for (auto j = startY; j <= endY; j++) {
           for (auto i = startX; i <= endX; i++) {
-            points[yy].push_back(swapBytes(file.m_buffer[(3600 - j) * 3601 + i]));
+            auto e = file->m_buffer[(3600 - j) * 3601 + i];
+            points[yy].push_back(swapBytes(e));
           }
 
           ++yy;
@@ -208,13 +209,15 @@ std::tuple<std::string, LatLng> getBaseFileName(const LatLng &point) {
                                          LatLng(latInt, lngInt));
 }
 
-const ElevationFile &Terrain3dRequest::loadFile(const LatLng &point) {
+std::shared_ptr<ElevationFile> Terrain3dRequest::loadFile(const LatLng &point) {
   std::string filename;
   LatLng latLng;
 
   std::tie(filename, latLng) = getBaseFileName(point);
 
   auto fullFileName = elevationPathGet() + filename + ".hgt";
+
+  std::unique_lock<std::mutex> lock(m_fileLoadMutex);
 
   // See if the file has already been loaded.
   auto iter = files.find(fullFileName);
@@ -230,28 +233,31 @@ const ElevationFile &Terrain3dRequest::loadFile(const LatLng &point) {
 
       std::cerr << "loading elevation file " << fullFileName << " of size "
                 << size << " bytes" << std::endl;
-      std::tie(iter, std::ignore) = files.emplace(
-          std::pair<std::string, ElevationFile>(fullFileName, {}));
 
-      iter->second.m_latLng = latLng;
-      iter->second.m_buffer.resize(size / sizeof(int16_t));
-      file.read(reinterpret_cast<char *>(iter->second.m_buffer.data()), size);
+      auto elevationFile = std::make_shared<ElevationFile>();
+
+      elevationFile->m_latLng = latLng;
+      elevationFile->m_buffer.resize(size / sizeof(int16_t));
+      file.read(reinterpret_cast<char *>(elevationFile->m_buffer.data()), size);
+
+      std::tie(iter, std::ignore) = files.emplace(
+          std::pair<std::string, std::shared_ptr<ElevationFile>>(fullFileName, elevationFile));
     } else {
       throw std::runtime_error("Could not read file " + fullFileName);
     }
   }
 
   accessCounter++;
-  iter->second.m_accessCounter = accessCounter;
+  iter->second->m_accessCounter = accessCounter;
 
-  if (files.size() > 4) {
+  if (files.size() > 100) {
     auto oldestAccess = accessCounter;
     auto oldestEntry = files.end();
 
     for (auto iter = files.begin(); iter != files.end(); ++iter) {
-      if (iter->second.m_accessCounter < oldestAccess) {
+      if (iter->second->m_accessCounter < oldestAccess) {
         oldestEntry = iter;
-        oldestAccess = iter->second.m_accessCounter;
+        oldestAccess = iter->second->m_accessCounter;
       }
     }
 

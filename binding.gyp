@@ -12,7 +12,7 @@
       '<!@(<(mapnik-config) --cflags --cxxflags)',
       '-std=c++17',
       '-Wno-shadow',
-      '-O2'          
+      '-O2'
     ],
     'cflags_cc!': [
       '-fno-rtti',

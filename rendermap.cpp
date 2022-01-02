@@ -150,7 +150,7 @@ rendermap::rendermap (const Napi::CallbackInfo &info)
 						elevationDir = layer.Get("directory").As<Napi::String>();
 					}
 
-					auto layer = std::make_unique<Terrain3d>(stateDir, layerName, elevationDir, 1);
+					auto layer = std::make_unique<Terrain3d>(stateDir, layerName, elevationDir, 4);
 
 					m_layers[layerName] = std::move(layer);
 				}
@@ -183,7 +183,7 @@ std::tuple<rendermap::RenderStatus, std::shared_ptr<Tile>> rendermap::render(
 	{
 		auto filename = layer->createFileName (x, y, z);
 
-		std::cerr << "Requested " << (update ? "(with update) " : "") << filename << std::endl;
+		std::cout << "Requested " << (update ? "(with update) " : "") << filename << std::endl;
 
     bool exists = false;
     int modifiedTime = 0;
