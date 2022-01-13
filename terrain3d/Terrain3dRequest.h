@@ -4,48 +4,10 @@
 #include "LatLng.h"
 #include "ElevationFile.h"
 #include "vec3.h"
+#include "TextureCoord.h"
+#include "Terrain.h"
 #include <memory>
 #include <vector>
-
-class TextureCoord
-{
-public:
-
-  double s;
-  double t;
-
-	operator Json::Value () const
-	{
-		Json::Value value;
-
-		value["s"] = s;
-		value["t"] = t;
-
-		return value;
-	}
-
-	friend std::ostream& operator<<(std::ostream &os, const TextureCoord &coord)
-	{
-		os << std::setprecision(15) <<
-			" (" << coord.s <<
-			", " << coord.t <<
-			") ";
-
-		return os;
-	}
-
-private:
-};
-
-struct Terrain
-{
-  LatLng sw;
-  LatLng ne;
-  TextureCoord textureSW;
-  TextureCoord textureNE;
-  std::vector<std::vector<uint16_t>> points;
-  std::vector<std::vector<double>> centers;
-};
 
 class Terrain3dRequest: public RenderRequest
 {
@@ -64,16 +26,18 @@ public:
 	std::vector<std::shared_ptr<Tile>> render() override;
 
 private:
-  Terrain getElevationTile(int x, int y, int dimension);
+  Terrain getElevationTile(double southLat, double westLng, double northLat, double eastLng);
 
   std::shared_ptr<ElevationFile> loadFile(const LatLng &point);
 
-  void create();
+  void create(const Terrain &ele, double xDimension, double yDimension);
 
   void createTerrainPoints(
     const Terrain &terrain,
     int numPointsX,
-    int numPointsY
+    int numPointsY,
+    double xDimension,
+    double yDimension
   );
 
   void createTerrainIndices(
@@ -86,13 +50,19 @@ private:
     int numPointsY
   );
 
-  static constexpr double metersPerPoint {111319.49079327373 / 3600};
+  void addRoutes(
+    double southLat,
+    double westLng,
+    double northLat,
+    double eastLng
+  );
 
-  int x;
-  int y;
-  int dimension;
+  // static constexpr double metersPerPoint {111319.49079327373 / 3600};
 
-  Terrain ele;
+  int m_x;
+  int m_y;
+  int m_dimension;
+
   std::vector<double> m_points;
   std::vector<int> m_indices;
   std::vector<double> m_normals;

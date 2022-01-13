@@ -31,9 +31,12 @@
         "MapnikLayer.cpp",
         "GeoTiffLayer.cpp",
         "TileCache.cpp",
-        "Terrain3d.cpp",
-        "Terrain3dRequest.cpp",
-        "vec3.cpp"
+        "terrain3d/Terrain3d.cpp",
+        "terrain3d/Terrain3dRequest.cpp",
+        "terrain3d/vec3.cpp",
+        "Database/DBConnection.cpp",
+        "Database/DBTransaction.cpp",
+        "Database/PreparedStatement.cpp"
     ],
     'include_dirs': [
         "<!@(node -p \"require('node-addon-api').include\")",
@@ -42,7 +45,9 @@
     "libraries": [
         '<!@(<(mapnik-config) --libs --dep-libs)',
         '-ljsoncpp',
-        '-lgdal'
+        '-lgdal',
+        '-lpqxx',
+        '-lpq',
       ],        
     'dependencies': [
         "<!(node -p \"require('node-addon-api').gyp\")"

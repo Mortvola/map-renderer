@@ -1,5 +1,7 @@
 #include "Terrain3dRequest.h"
+#include "../Database/DBConnection.h"
 #include <fstream>
+#include <cmath>
 
 static int terrainVertexStride = 5;
 
@@ -23,10 +25,37 @@ Terrain3dRequest::Terrain3dRequest (
   RenderRequest::StateChangeCallback stateChange)
 :
 	RenderRequest(layer, RenderRequest::Type::Terrain, deferred, callback, x, y, z, 1, 0, fileSystemRoot, "json", stateChange),
-  x(x),
-  y(y),
-  dimension(z)
+  m_x(x),
+  m_y(y),
+  m_dimension(z)
 {
+}
+
+std::pair<double, double> LatLngToMercator(double lat, double lng)
+{
+  auto degToRad = [](double d)
+  {
+    return (d / 180.0) * M_PI;
+  };
+
+  auto latRad = degToRad(lat);
+  auto lngRad = degToRad(lng);
+
+  double equatorialRadius = 6378137.0;
+  double a = equatorialRadius;
+  double f = 1 / 298.257223563;
+  double b = a * (1 - f);
+  double e = std::sqrt(1 - (b * b) / (a * a)); // ellipsoid eccentricity
+
+  auto sinLatRad = std::sin(latRad);
+
+  auto c = ((1 - e * sinLatRad) / (1 + e * sinLatRad));
+
+  auto x = lngRad * a;
+  auto y = std::log(((1 + sinLatRad) / (1 - sinLatRad)) * std::pow(c, e)) * (a / 2);
+
+  std::cout << "latLngToMercator: " << lat << ", " << lng << " => " << x << ", " << y << std::endl;
+  return {x, y};
 }
 
 template<class T>
@@ -53,21 +82,54 @@ std::vector<std::shared_ptr<Tile>> Terrain3dRequest::render()
 {
   std::vector<std::shared_ptr<Tile>> result;
 
-  ele = getElevationTile(x, y, dimension);
+  auto latLngPerPoint = 1 / 3600.0;
 
-  create();
+  auto westEdge = m_x * (m_dimension - 1);
+  auto eastEdge = westEdge + (m_dimension - 1);
+  auto westLng = westEdge * latLngPerPoint - 180;
+  auto eastLng = eastEdge * latLngPerPoint - 180;
+
+  auto southEdge = m_y * (m_dimension - 1);
+  auto northEdge = southEdge + (m_dimension - 1);
+  auto southLat = southEdge * latLngPerPoint - 180;
+  auto northLat = northEdge * latLngPerPoint - 180;
+
+  double westMercator, southMercator;
+  double eastMercator, northMercator;
+
+  std::tie(westMercator, southMercator) = LatLngToMercator(southLat, westLng);
+  std::tie(eastMercator, northMercator) = LatLngToMercator(northLat, eastLng);
+
+  auto xDimension = eastMercator - westMercator;
+  auto yDimension = northMercator - southMercator;
+
+  std::cout << "dimension1: " << xDimension << ", " << yDimension << std::endl;
+
+  auto ele = getElevationTile(southLat, westLng, northLat, eastLng);
+
+  create(ele, xDimension, yDimension);
+
+  addRoutes(southLat, westLng, northLat, eastLng);
+
+  Json::Value terrain = Json::objectValue;
+  terrain["type"] = "triangles";
+  terrain["points"] = vectorToJson(m_points);
+  terrain["normals"] = vectorToJson(m_normals);
+  terrain["indices"] = vectorToJson(m_indices);
+
+  Json::Value objectArray = Json::arrayValue;
+  objectArray.append(terrain);
 
   Json::Value data = Json::objectValue;
-
-  data["points"] = vectorToJson(m_points);
-  data["normals"] = vectorToJson(m_normals);
-  data["indices"] = vectorToJson(m_indices);
   data["ele"] = vector2dToJson(ele.points);
+  data["xDimension"] = xDimension;
+  data["yDimension"] = yDimension;
+  data["objects"] = objectArray;
 
   Json::FastWriter fastWriter;
   std::string output = fastWriter.write(data);
 
-  result.push_back(m_layer->saveTile(x, y, dimension, output));
+  result.push_back(m_layer->saveTile(m_x, m_y, m_dimension, output));
 
   return result;
 }
@@ -79,19 +141,17 @@ double bilinearInterpolation(double q11, double q12, double q21, double q22,
   return (q11 * x2x * y2y + q12 * x * y2y + q21 * x2x * y + q22 * x * y);
 }
 
-Terrain Terrain3dRequest::getElevationTile(int x, int y, int dimension) {
+Terrain Terrain3dRequest::getElevationTile(
+  double southLat,
+  double westLng,
+  double northLat,
+  double eastLng) {
   try {
-    auto latLngPerPoint = 1 / 3600.0;
+    auto westEdge = m_x * (m_dimension - 1);
+    auto eastEdge = westEdge + (m_dimension - 1);
 
-    auto westEdge = x * (dimension - 1);
-    auto eastEdge = westEdge + (dimension - 1);
-    auto westLng = westEdge * latLngPerPoint - 180;
-    auto eastLng = eastEdge * latLngPerPoint - 180;
-
-    auto southEdge = y * (dimension - 1);
-    auto northEdge = southEdge + (dimension - 1);
-    auto southLat = southEdge * latLngPerPoint - 180;
-    auto northLat = northEdge * latLngPerPoint - 180;
+    auto southEdge = m_y * (m_dimension - 1);
+    auto northEdge = southEdge + (m_dimension - 1);
 
     auto latMin = std::floor(southLat);
     auto latMax = std::ceil(northLat);
@@ -99,10 +159,12 @@ Terrain Terrain3dRequest::getElevationTile(int x, int y, int dimension) {
     auto lngMin = std::floor(westLng);
     auto lngMax = std::ceil(eastLng);
 
+    std::cout << "(" << southLat << ", " << westLng << ") - (" << northLat << ", " << eastLng << ")" << std::endl;
+
     std::vector<std::vector<uint16_t>> points;
     std::vector<std::vector<double>> centers;
 
-    points.resize(dimension);
+    points.resize(m_dimension);
 
     for (auto lat = latMin; lat < latMax; lat++) {
       for (auto lng = lngMin; lng < lngMax; lng++) {
@@ -153,7 +215,7 @@ Terrain Terrain3dRequest::getElevationTile(int x, int y, int dimension) {
       }
     }
 
-    size_t centersDimension = dimension - 1;
+    size_t centersDimension = m_dimension - 1;
     centers.resize(centersDimension);
 
     for (size_t j = 0; j < centersDimension; j++) {
@@ -470,20 +532,13 @@ void Terrain3dRequest::createTerrainNormals(
   }));
 }
 
-void Terrain3dRequest::create() {
-  int numPointsX = ele.points[0].size();
-  int numPointsY = ele.points.size();
-
-  createTerrainPoints(ele, numPointsX, numPointsY);
-  createTerrainIndices(numPointsX, numPointsY);
-  createTerrainNormals(numPointsX, numPointsY);
-}
-
 // eslint-disable-next-line class-methods-use-this
 void Terrain3dRequest::createTerrainPoints(
   const Terrain &terrain,
   int numPointsX,
-  int numPointsY
+  int numPointsY,
+  double xDimension,
+  double yDimension
 ) {
   // const { startLatOffset, startLngOffset } = getStartOffset(terrain.sw);
 
@@ -494,13 +549,18 @@ void Terrain3dRequest::createTerrainPoints(
   const double sStep = (terrain.textureNE.s - terrain.textureSW.s) / (numPointsX - 1);
   const double tStep = (terrain.textureNE.t - terrain.textureSW.t) / (numPointsY - 1);
 
+  // const double xDimension = ((m_dimension - 1) * Terrain3dRequest::metersPerPoint);
+  // const double yDimension = ((m_dimension - 1) * Terrain3dRequest::metersPerPoint);
+
+  // std::cout << "dimension2: " << xDimension << ", " << yDimension << std::endl;
+
   // we are purposefully using latDistance for both dimensions
   // here to create a square tile (at least for now).
-  const double yStep = Terrain3dRequest::metersPerPoint; // this.dimension / (numPointsY - 1);
-  const double startYOffset = -((dimension - 1) * Terrain3dRequest::metersPerPoint) / 2;
+  const double yStep = yDimension / (numPointsY - 1); // Terrain3dRequest::metersPerPoint;
+  const double startYOffset = -yDimension / 2;
 
-  const double xStep = Terrain3dRequest::metersPerPoint; // this.dimension / (numPointsX - 1);
-  const double startXOffset = -((dimension - 1) * Terrain3dRequest::metersPerPoint) / 2;
+  const double xStep = xDimension / (numPointsX - 1); // Terrain3dRequest::metersPerPoint;
+  const double startXOffset = -xDimension / 2;
 
   for (auto i = 0; i < numPointsX; i += 1) {
     m_points.push_back(startXOffset + i * xStep);
@@ -539,4 +599,51 @@ void Terrain3dRequest::createTerrainPoints(
       m_points.push_back(terrain.textureSW.t + j * tStep);
     }
   }
+}
+
+void Terrain3dRequest::create(const Terrain &ele, double xDimension, double yDimension) {
+  int numPointsX = ele.points[0].size();
+  int numPointsY = ele.points.size();
+
+  createTerrainPoints(ele, numPointsX, numPointsY, xDimension, yDimension);
+  createTerrainIndices(numPointsX, numPointsY);
+  createTerrainNormals(numPointsX, numPointsY);
+}
+
+void Terrain3dRequest::addRoutes(
+  double southLat,
+  double westLng,
+  double northLat,
+  double eastLng
+) {
+  DBConnection connection;
+
+  auto result = connection.exec(
+    R"%(
+      select
+        surface,
+        ST_Transform(
+          ST_SetSRID(
+            ST_AsText(ST_ClipByBox2D(way, ST_MakeBox2D(
+              ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857),
+              ST_Transform(ST_SetSRID(ST_MakePoint($3, $4), 4326), 3857)
+            ))),
+            3857
+          ),
+          3395
+        )
+      from planet_osm_route
+      where ST_Intersects(
+        ST_SetSRID(ST_MakeBox2D(
+          ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857),
+          ST_Transform(ST_SetSRID(ST_MakePoint($3, $4), 4326), 3857)
+        ), 3857),
+        way
+      )
+    )%",
+    westLng, southLat,
+    eastLng, northLat
+  );
+
+  std::cout << result.size() << std::endl;
 }

@@ -11,8 +11,9 @@
 #include "TerrainRequest.h"
 #include "MapnikLayer.h"
 #include "GeoTiffLayer.h"
-#include "Terrain3d.h"
+#include "terrain3d/Terrain3d.h"
 #include "TileCache.h"
+#include "./Database/DBConnection.h"
 #include <cmath>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -155,6 +156,17 @@ rendermap::rendermap (const Napi::CallbackInfo &info)
 					m_layers[layerName] = std::move(layer);
 				}
 			}
+		}
+
+		if (initObject.Has("database") && initObject.Get("database").IsObject())
+		{
+			auto dbConfig = initObject.Get("database").As<Napi::Object>();
+			std::string db = dbConfig.Get("database").As<Napi::String>();
+			std::string username = dbConfig.Get("username").As<Napi::String>();
+			std::string password = dbConfig.Get("password").As<Napi::String>();
+			std::string host = dbConfig.Get("host").As<Napi::String>();
+
+			configDB(username, password, host, db);
 		}
 	}
 }
