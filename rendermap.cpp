@@ -13,7 +13,7 @@
 #include "GeoTiffLayer.h"
 #include "terrain3d/Terrain3d.h"
 #include "TileCache.h"
-#include "./Database/DBConnection.h"
+// #include "./Database/DBConnection.h"
 #include <cmath>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -158,16 +158,16 @@ rendermap::rendermap (const Napi::CallbackInfo &info)
 			}
 		}
 
-		if (initObject.Has("database") && initObject.Get("database").IsObject())
-		{
-			auto dbConfig = initObject.Get("database").As<Napi::Object>();
-			std::string db = dbConfig.Get("database").As<Napi::String>();
-			std::string username = dbConfig.Get("username").As<Napi::String>();
-			std::string password = dbConfig.Get("password").As<Napi::String>();
-			std::string host = dbConfig.Get("host").As<Napi::String>();
+		// if (initObject.Has("database") && initObject.Get("database").IsObject())
+		// {
+		// 	auto dbConfig = initObject.Get("database").As<Napi::Object>();
+		// 	std::string db = dbConfig.Get("database").As<Napi::String>();
+		// 	std::string username = dbConfig.Get("username").As<Napi::String>();
+		// 	std::string password = dbConfig.Get("password").As<Napi::String>();
+		// 	std::string host = dbConfig.Get("host").As<Napi::String>();
 
-			configDB(username, password, host, db);
-		}
+		// 	configDB(username, password, host, db);
+		// }
 	}
 }
 

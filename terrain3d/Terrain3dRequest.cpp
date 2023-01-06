@@ -1,5 +1,5 @@
 #include "Terrain3dRequest.h"
-#include "../Database/DBConnection.h"
+// #include "../Database/DBConnection.h"
 #include <fstream>
 #include <cmath>
 
@@ -616,34 +616,34 @@ void Terrain3dRequest::addRoutes(
   double northLat,
   double eastLng
 ) {
-  DBConnection connection;
+  // DBConnection connection;
 
-  auto result = connection.exec(
-    R"%(
-      select
-        surface,
-        ST_Transform(
-          ST_SetSRID(
-            ST_AsText(ST_ClipByBox2D(way, ST_MakeBox2D(
-              ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857),
-              ST_Transform(ST_SetSRID(ST_MakePoint($3, $4), 4326), 3857)
-            ))),
-            3857
-          ),
-          3395
-        )
-      from planet_osm_route
-      where ST_Intersects(
-        ST_SetSRID(ST_MakeBox2D(
-          ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857),
-          ST_Transform(ST_SetSRID(ST_MakePoint($3, $4), 4326), 3857)
-        ), 3857),
-        way
-      )
-    )%",
-    westLng, southLat,
-    eastLng, northLat
-  );
+  // auto result = connection.exec(
+  //   R"%(
+  //     select
+  //       surface,
+  //       ST_Transform(
+  //         ST_SetSRID(
+  //           ST_AsText(ST_ClipByBox2D(way, ST_MakeBox2D(
+  //             ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857),
+  //             ST_Transform(ST_SetSRID(ST_MakePoint($3, $4), 4326), 3857)
+  //           ))),
+  //           3857
+  //         ),
+  //         3395
+  //       )
+  //     from planet_osm_route
+  //     where ST_Intersects(
+  //       ST_SetSRID(ST_MakeBox2D(
+  //         ST_Transform(ST_SetSRID(ST_MakePoint($1, $2), 4326), 3857),
+  //         ST_Transform(ST_SetSRID(ST_MakePoint($3, $4), 4326), 3857)
+  //       ), 3857),
+  //       way
+  //     )
+  //   )%",
+  //   westLng, southLat,
+  //   eastLng, northLat
+  // );
 
-  std::cout << result.size() << std::endl;
+  // std::cout << result.size() << std::endl;
 }
